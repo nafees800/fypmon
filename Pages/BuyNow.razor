@@ -1,0 +1,153 @@
+﻿@page "/buynow/{BookId:int}"
+@attribute [Authorize(Roles = "User")]
+@using BlazorServerAuthenticationAndAuthorization.Model
+@using BlazorServerAuthenticationAndAuthorization.Services
+@inject BookService BookService
+@inject NavigationManager NavigationManager
+
+<div class="buynow-container">
+    <div class="book-details">
+        @if (book == null)
+
+        {
+            <p>Sorry, this book was not found.</p>
+        }
+
+        else
+
+        {
+            <div class="book-image">
+                <img src="@book.ImagePath" alt="Book Cover Image" />
+            </div>
+            <div class="book-info">
+                <h1>@book.BookName</h1>
+                <p><strong>Author:</strong> @book.Author</p>
+                <p><strong>Publisher:</strong> @book.Publisher</p>
+                <p><strong>Edition:</strong> @book.Edition</p>
+                <p><strong>Condition:</strong> @book.Condition</p>
+                <p><strong>Category:</strong> @book.Category</p>
+                <p><strong>City:</strong> @book.City</p>
+                <p class="card-text"><strong>Price:</strong> @string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C}", book.Price)</p>
+                <p><strong>Contact:</strong> @book.CellNo</p>
+                @if (book.IsExchangeable)
+
+                {
+                    <p><strong>Exchangeable With:</strong> @book.ExchangeBookName</p>
+                }
+                <p><strong>Added By:</strong> @book.UserInfo.UserName</p>
+                <!-- View Detail Button -->
+               
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int BookId { get; set; }
+
+
+
+    private Book? book;
+
+
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        book = await BookService.GetBookByIdAsync(BookId);
+
+    }
+
+
+
+    private void NavigateToDetail()
+
+    {
+
+        NavigationManager.NavigateTo($"/details/{BookId}");
+
+    }
+}
+
+<style>
+    .buynow-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .book-details {
+        display: flex;
+        width: 80%;
+        max-width: 1000px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        background-color: #fff;
+    }
+
+    .book-image {
+        width: 300px;
+        height: 300px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+        .book-image img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+    .book-info {
+        padding: 20px;
+        flex-grow: 1;
+    }
+
+        .book-info h1 {
+            margin-top: 0;
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .book-info p {
+            margin: 10px 0;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .book-info strong {
+            font-weight: bold;
+            color: #333;
+        }
+
+    .card-text {
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .btn-view-detail {
+        background-color: #005F5F;
+        color: white;
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-view-detail:hover {
+            background-color: #004545;
+        }
+</style>

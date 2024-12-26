@@ -1,0 +1,724 @@
+﻿@page "/"
+@using BlazorServerAuthenticationAndAuthorization.Model
+@using BlazorServerAuthenticationAndAuthorization.Services
+@inject BookService BookService
+@using System.Security.Claims
+@inject IJSRuntime js
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Index</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <h1>Welcome, @context.User.Identity?.Name!</h1>
+    </Authorized>
+    <NotAuthorized>
+    </NotAuthorized>
+</AuthorizeView>
+
+<div class="main-home">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="search-filter-container">
+            <input type="text" placeholder="Search for books..." @bind="searchTerm" class="search-input" />
+            <button class="btn-search" @onclick="SearchBooks">Search</button>
+        </div>
+
+        <div class="filter-container">
+            <div class="filter-location">
+                <label for="city-filter">Search City:</label>
+                <input type="text" id="city-filter" @bind="selectedCity" @oninput="FilterByCity" class="city-input" placeholder="Enter city name" />
+            </div>
+
+            <div class="filter-category">
+                <label for="category-filter">Filter by Category:</label>
+                <select id="category-filter" @onchange="FilterByCategory" class="category-dropdown">
+                    <option value="">All</option>
+                    <option value="Generic">Generic</option>
+                    <option value="Novels">Novels</option>
+                    <option value="Science">Science</option>
+                    <option value="Religion">Religion</option>
+                    <option value="Technology">Technology</option>
+                </select>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="book-row">
+    @if (paginatedBooks != null && paginatedBooks.Count > 0)
+
+
+
+    {
+        @foreach (var book in paginatedBooks)
+
+
+
+        {
+            <div class="book-card">
+                <div class="card">
+                    <div class="card-split-layout">
+                        <div class="card-left-section">
+                            @if (!string.IsNullOrEmpty(book.Category))
+                            {
+                                <div class="category-label">@book.Category</div>
+                            }
+                            <div class="book-title">@book.BookName</div>
+                            <div class="android-icon">
+                                @if (!string.IsNullOrEmpty(book.ImagePath))
+
+
+
+                                {
+                                    <img src="@book.ImagePath" alt="Book Image" />
+                                }
+                            </div>
+                        </div>
+                        <div class="card-right-section">
+                            <div class="difficulty-section">
+                                <span class="difficulty-label">Price</span>
+                                <span class="difficulty-value">@string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:C}", book.Price)</span>
+                            </div>
+                            <div class="book-details">
+                                <p><strong>Author:</strong> @book.Author</p>
+                                <p><strong>ISBN:</strong> @book.ISBN</p>
+                                <p><strong>Contact:</strong> @book.CellNo</p>
+                                @if (book.IsExchangeable)
+
+
+
+                                {
+                                    <p><strong>Exchangeable:</strong> Yes</p>
+                                    @if (!string.IsNullOrEmpty(book.ExchangeBookName))
+                                    {
+                                        <p><strong>Exchangeable With:</strong> @book.ExchangeBookName</p>
+                                    }
+                                }
+
+
+
+                                else
+
+
+
+                                {
+                                    <p><strong>Exchangeable:</strong> No</p>
+                                }
+                            </div>
+                            <NavLink href="@($"/buynow/{book.Id}")" class="begin-button">View Details</NavLink>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+
+
+    else
+
+
+
+    {
+        <div class="col-12">
+            <div class="alert alert-warning text-center" role="alert">
+                No books available.
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Pagination Controls -->
+@if (filteredBooks != null && filteredBooks.Count > 0)
+
+
+
+{
+    <div class="pagination-container">
+        <button class="btn btn-secondary" @onclick="PreviousPage" disabled="@(currentPage == 1)">Previous</button>
+        <span class="page-info">Page @currentPage of @TotalPages</span>
+        <button class="btn btn-secondary" @onclick="NextPage" disabled="@(currentPage == TotalPages)">Next</button>
+    </div>
+}
+
+@code {
+    private List<Book>? books;           // All books
+
+
+
+    private List<Book>? filteredBooks;  // Filtered books for search
+
+
+
+    private List<Book>? paginatedBooks; // Books to display on current page
+
+
+
+    private string? searchTerm;         // User's search input
+
+
+
+    private string? selectedCategory;   // Selected category for filtering
+
+
+
+    private string? selectedCity;       // Selected city for filtering
+
+
+
+    private int currentPage = 1;
+
+
+
+    private const int BooksPerPage = 12;
+
+
+
+
+
+
+
+    private int TotalPages
+
+
+
+    {
+
+
+
+        get
+
+
+
+        {
+
+
+
+            if (filteredBooks == null) return 0;
+
+
+
+            return (int)Math.Ceiling((double)filteredBooks.Count / BooksPerPage);
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+    protected override async Task OnInitializedAsync()
+
+
+
+    {
+
+
+
+        books = await BookService.GetAllBooksAsync();
+
+
+
+        filteredBooks = books;
+
+
+
+        UpdatePaginatedBooks();
+
+
+
+    }
+
+
+
+
+
+
+
+    private void UpdatePaginatedBooks()
+
+
+
+    {
+
+
+
+        if (filteredBooks == null || !filteredBooks.Any())
+
+
+
+        {
+
+
+
+            paginatedBooks = new List<Book>();
+
+
+
+            return;
+
+
+
+        }
+
+
+
+        int startIndex = (currentPage - 1) * BooksPerPage;
+
+
+
+        paginatedBooks = filteredBooks.Skip(startIndex).Take(BooksPerPage).ToList();
+
+
+
+    }
+
+
+
+
+
+
+
+    private void NextPage()
+
+
+
+    {
+
+
+
+        if (currentPage < TotalPages)
+
+
+
+        {
+
+
+
+            currentPage++;
+
+
+
+            UpdatePaginatedBooks();
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+    private void PreviousPage()
+
+
+
+    {
+
+
+
+        if (currentPage > 1)
+
+
+
+        {
+
+
+
+            currentPage--;
+
+
+
+            UpdatePaginatedBooks();
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+    private void SearchBooks()
+
+
+
+    {
+
+
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+
+
+
+        {
+
+
+
+            filteredBooks = books;
+
+
+
+        }
+
+
+
+        else
+
+
+
+        {
+
+
+
+            filteredBooks = books
+
+
+
+                .Where(book => !string.IsNullOrEmpty(book.BookName) &&
+
+
+
+                               book.BookName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+
+
+
+                .ToList();
+
+
+
+        }
+
+
+
+        currentPage = 1;
+
+
+
+        UpdatePaginatedBooks();
+
+
+
+    }
+
+
+
+
+
+
+
+    private void FilterByCategory(ChangeEventArgs e)
+
+
+
+    {
+
+
+
+        selectedCategory = e.Value?.ToString();
+
+
+
+        if (string.IsNullOrEmpty(selectedCategory))
+
+
+
+        {
+
+
+
+            filteredBooks = books;
+
+
+
+        }
+
+
+
+        else
+
+
+
+        {
+
+
+
+            filteredBooks = books
+
+
+
+                .Where(book => !string.IsNullOrEmpty(book.Category) &&
+
+
+
+                               book.Category.Equals(selectedCategory, StringComparison.OrdinalIgnoreCase))
+
+
+
+                .ToList();
+
+
+
+        }
+
+
+
+        currentPage = 1;
+
+
+
+        UpdatePaginatedBooks();
+
+
+
+    }
+
+
+
+
+
+
+
+    private void FilterByCity(ChangeEventArgs e)
+
+
+
+    {
+
+
+
+        selectedCity = e.Value?.ToString();
+
+
+
+        if (string.IsNullOrEmpty(selectedCity))
+
+
+
+        {
+
+
+
+            filteredBooks = books;
+
+
+
+        }
+
+
+
+        else
+
+
+
+        {
+
+
+
+            filteredBooks = books
+
+
+
+                .Where(book => !string.IsNullOrEmpty(book.City) &&
+
+
+
+                               book.City.Contains(selectedCity, StringComparison.OrdinalIgnoreCase))
+
+
+
+                .ToList();
+
+
+
+        }
+
+
+
+        currentPage = 1;
+
+
+
+        UpdatePaginatedBooks();
+
+
+
+    }
+}
+
+<style>
+    .main-home {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+    }
+
+    .hero-section {
+        margin: 40px 0;
+        text-align: center;
+    }
+
+    .search-filter-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        padding: 10px;
+        width: 40%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+
+    .btn-search {
+        background-color: #005F5F;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+        .btn-search:hover {
+            background-color: #004c4c;
+        }
+
+    .filter-container {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+    }
+
+    .filter-location, .filter-category {
+        font-size: 16px;
+    }
+
+    .category-dropdown {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .book-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .book-card {
+        flex: 1 1 calc(33.333% - 20px); /* 3 cards per row */
+        box-sizing: border-box;
+    }
+
+    .card-split-layout {
+        display: flex;
+        min-height: 200px;
+    }
+
+    .card-left-section {
+        flex: 0 0 40%;
+        background-color: #40E0D0; /* Keeping the background color */
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        color: #333; /* Text color */
+    }
+
+        .card-left-section .category-label {
+            font-size: 0.9rem;
+            color: #fff; /* White color for category text */
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .card-left-section .book-title {
+            color: #000; /* Black color for book title */
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+
+
+    .android-icon img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+    }
+
+    .card-right-section {
+        flex: 0 0 60%;
+        padding: 20px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .difficulty-section {
+        margin-top: 20px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .difficulty-value {
+        color: #333;
+        font-size: 1.2rem;
+    }
+
+    .book-details p {
+        margin: 5px 0;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 30px;
+    }
+
+        .pagination-container button {
+            padding: 10px 20px;
+        }
+
+    .page-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .begin-button {
+        text-decoration: none;
+        padding: 10px 20px;
+        background-color: #005F5F;
+        color: white;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+        .begin-button:hover {
+            background-color: #004c4c;
+        }
+</style>

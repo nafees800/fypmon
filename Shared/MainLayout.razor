@@ -1,0 +1,60 @@
+﻿@using BlazorServerAuthenticationAndAuthorization.Authentication
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager navManager
+
+<PageTitle>BlazorServerAuthenticationAndAuthorization</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized>
+                    <a @onclick="Logout" href="javascript:void(0)">Logout</a>
+                </Authorized>
+                <NotAuthorized>
+                    <!-- User Icon that shows the login form when clicked -->
+                    <div class="user-icon" @onclick="ShowLoginForm">
+                        <svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                            <path d="M12 14c2.5 0 4-2 4-4s-1.5-4-4-4-4 2-4 4 1.5 4 4 4z" fill="currentColor" />
+                            <path d="M12 16c-2 0-6 1-6 3v1h12v-1c0-2-4-3-6-3z" fill="currentColor" />
+                        </svg>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private async Task Logout()
+
+    {
+
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+
+        await customAuthStateProvider.UpdateAuthenticationState(null);
+
+        navManager.NavigateTo("/", true);
+
+    }
+
+
+
+    private void ShowLoginForm()
+
+    {
+
+        navManager.NavigateTo("/login");
+
+    }
+}
